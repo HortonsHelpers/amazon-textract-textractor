@@ -18,95 +18,87 @@ class OutputGenerator:
         csvData = []
         for line in page.lines:
             for word in line.words:
-                csvItem = []
-                csvItem.append(word.id)
+                csvItem = [word.id]
                 if (word.text):
                     csvItem.append(word.text)
                 else:
                     csvItem.append("")
                 csvData.append(csvItem)
         csvFieldNames = ['Word-Id', 'Word-Text']
-        FileHelper.writeCSV("{}-page-{}-words.csv".format(self.fileName, p),
-                            csvFieldNames, csvData)
+        FileHelper.writeCSV(
+            f"{self.fileName}-page-{p}-words.csv", csvFieldNames, csvData
+        )
 
     def _outputText(self, page, p):
         text = page.text
-        FileHelper.writeToFile("{}-page-{}-text.txt".format(self.fileName, p),
-                               text)
+        FileHelper.writeToFile(f"{self.fileName}-page-{p}-text.txt", text)
 
         textInReadingOrder = page.getTextInReadingOrder()
         FileHelper.writeToFile(
-            "{}-page-{}-text-inreadingorder.txt".format(self.fileName, p),
-            textInReadingOrder)
+            f"{self.fileName}-page-{p}-text-inreadingorder.txt", textInReadingOrder
+        )
 
     def _outputForm(self, page, p):
         csvData = []
         for field in page.form.fields:
             csvItem = []
-            if (field.key):
-                csvItem.append(field.key.text)
-                csvItem.append(field.key.confidence)
+            if field.key:
+                csvItem.extend((field.key.text, field.key.confidence))
             else:
-                csvItem.append("")
-                csvItem.append("")
-            if (field.value):
-                csvItem.append(field.value.text)
-                csvItem.append(field.value.confidence)
+                csvItem.extend(("", ""))
+            if field.value:
+                csvItem.extend((field.value.text, field.value.confidence))
             else:
-                csvItem.append("")
-                csvItem.append("")
+                csvItem.extend(("", ""))
             csvData.append(csvItem)
         csvFieldNames = ['Key', 'KeyConfidence', 'Value', 'ValueConfidence']
-        FileHelper.writeCSV("{}-page-{}-forms.csv".format(self.fileName, p),
-                            csvFieldNames, csvData)
+        FileHelper.writeCSV(
+            f"{self.fileName}-page-{p}-forms.csv", csvFieldNames, csvData
+        )
 
     def _outputTable(self, page, p):
 
         csvData = []
         for table in page.tables:
-            csvRow = []
-            csvRow.append("Table")
+            csvRow = ["Table"]
             csvData.append(csvRow)
             for row in table.rows:
-                csvRow = []
-                for cell in row.cells:
-                    csvRow.append(cell.text)
+                csvRow = [cell.text for cell in row.cells]
                 csvData.append(csvRow)
-            csvData.append([])
-            csvData.append([])
-
-        FileHelper.writeCSVRaw(
-            "{}-page-{}-tables.csv".format(self.fileName, p), csvData)
+            csvData.extend(([], []))
+        FileHelper.writeCSVRaw(f"{self.fileName}-page-{p}-tables.csv", csvData)
 
     def _outputTablePretty(self, page, p, table_format='github'):
         for table_number, table in enumerate(page.tables):
-            rows_list = list()
+            rows_list = []
             for row in table.rows:
-                one_row = list()
+                one_row = []
                 for cell in row.cells:
                     one_row = one_row + [cell.text]
                 rows_list.append(one_row)
             pretty_table = tabulate(rows_list, tablefmt=table_format)
             FileHelper.writeToFile(
-                "{}-page-{}-table-{}-tables-pretty.txt".format(
-                    self.fileName, p, table_number), pretty_table)
+                f"{self.fileName}-page-{p}-table-{table_number}-tables-pretty.txt",
+                pretty_table,
+            )
 
     def run(self):
 
         if (not self.document.pages):
             return
 
-        FileHelper.writeToFile("{}-response.json".format(self.fileName),
-                               json.dumps(self.response))
+        FileHelper.writeToFile(
+            f"{self.fileName}-response.json", json.dumps(self.response)
+        )
 
-        print("Total Pages in Document: {}".format(len(self.document.pages)))
+        print(f"Total Pages in Document: {len(self.document.pages)}")
 
         p = 1
         for page in self.document.pages:
 
             FileHelper.writeToFile(
-                "{}-page-{}-response.json".format(self.fileName, p),
-                json.dumps(page.blocks))
+                f"{self.fileName}-page-{p}-response.json", json.dumps(page.blocks)
+            )
 
             self._outputWords(page, p)
 
@@ -125,53 +117,56 @@ class OutputGenerator:
                   keyPhrases, ta):
         # Sentiment
         dsentiment = ta.getSentiment(subText)
-        dsentimentRow = []
-        dsentimentRow.append(dsentiment["Sentiment"])
+        dsentimentRow = [dsentiment["Sentiment"]]
         sentiment.append(dsentimentRow)
 
         # Syntax
         dsyntax = ta.getSyntax(subText)
         for dst in dsyntax['SyntaxTokens']:
-            dsyntaxRow = []
-            dsyntaxRow.append(dst["PartOfSpeech"]["Tag"])
-            dsyntaxRow.append(dst["PartOfSpeech"]["Score"])
-            dsyntaxRow.append(dst["Text"])
-            dsyntaxRow.append(int(dst["BeginOffset"]) + start)
-            dsyntaxRow.append(int(dst["EndOffset"]) + start)
+            dsyntaxRow = [
+                dst["PartOfSpeech"]["Tag"],
+                dst["PartOfSpeech"]["Score"],
+                dst["Text"],
+                int(dst["BeginOffset"]) + start,
+                int(dst["EndOffset"]) + start,
+            ]
             syntax.append(dsyntaxRow)
 
         # Entities
         dentities = ta.getEntities(subText)
         for dent in dentities['Entities']:
-            dentitiesRow = []
-            dentitiesRow.append(dent["Type"])
-            dentitiesRow.append(dent["Text"])
-            dentitiesRow.append(dent["Score"])
-            dentitiesRow.append(int(dent["BeginOffset"]) + start)
-            dentitiesRow.append(int(dent["EndOffset"]) + start)
+            dentitiesRow = [
+                dent["Type"],
+                dent["Text"],
+                dent["Score"],
+                int(dent["BeginOffset"]) + start,
+                int(dent["EndOffset"]) + start,
+            ]
             entities.append(dentitiesRow)
 
         # Key Phrases
         dkeyPhrases = ta.getKeyPhrases(subText)
         for dkphrase in dkeyPhrases['KeyPhrases']:
-            dkeyPhrasesRow = []
-            dkeyPhrasesRow.append(dkphrase["Text"])
-            dkeyPhrasesRow.append(dkphrase["Score"])
-            dkeyPhrasesRow.append(int(dkphrase["BeginOffset"]) + start)
-            dkeyPhrasesRow.append(int(dkphrase["EndOffset"]) + start)
+            dkeyPhrasesRow = [
+                dkphrase["Text"],
+                dkphrase["Score"],
+                int(dkphrase["BeginOffset"]) + start,
+                int(dkphrase["EndOffset"]) + start,
+            ]
             keyPhrases.append(dkeyPhrasesRow)
 
     def _medicalInsights(self, start, subText, medicalEntities, phi, tma):
         # Entities
         dentities = tma.getMedicalEntities(subText)
         for dent in dentities['Entities']:
-            dentitiesRow = []
-            dentitiesRow.append(dent["Text"])
-            dentitiesRow.append(dent["Type"])
-            dentitiesRow.append(dent["Category"])
-            dentitiesRow.append(dent["Score"])
-            dentitiesRow.append(int(dent["BeginOffset"]) + start)
-            dentitiesRow.append(int(dent["EndOffset"]) + start)
+            dentitiesRow = [
+                dent["Text"],
+                dent["Type"],
+                dent["Category"],
+                dent["Score"],
+                int(dent["BeginOffset"]) + start,
+                int(dent["EndOffset"]) + start,
+            ]
             medicalEntities.append(dentitiesRow)
 
         phi.extend(tma.getPhi(subText))
@@ -196,9 +191,7 @@ class OutputGenerator:
 
         while (start < sl):
             end = start + maxLen
-            if (end > sl):
-                end = sl
-
+            end = min(end, sl)
             subText = text[start:end]
 
             if (insights):
@@ -213,39 +206,50 @@ class OutputGenerator:
 
             start = end
 
-        if (insights):
+        if insights:
             FileHelper.writeCSV(
-                "{}-page-{}-insights-sentiment.csv".format(self.fileName, p),
-                ["Sentiment"], sentiment)
+                f"{self.fileName}-page-{p}-insights-sentiment.csv",
+                ["Sentiment"],
+                sentiment,
+            )
             FileHelper.writeCSV(
-                "{}-page-{}-insights-entities.csv".format(self.fileName, p),
+                f"{self.fileName}-page-{p}-insights-entities.csv",
                 ["Type", "Text", "Score", "BeginOffset", "EndOffset"],
-                entities)
+                entities,
+            )
             FileHelper.writeCSV(
-                "{}-page-{}-insights-syntax.csv".format(self.fileName, p), [
-                    "PartOfSpeech-Tag", "PartOfSpeech-Score", "Text",
-                    "BeginOffset", "EndOffset"
-                ], syntax)
+                f"{self.fileName}-page-{p}-insights-syntax.csv",
+                [
+                    "PartOfSpeech-Tag",
+                    "PartOfSpeech-Score",
+                    "Text",
+                    "BeginOffset",
+                    "EndOffset",
+                ],
+                syntax,
+            )
             FileHelper.writeCSV(
-                "{}-page-{}-insights-keyPhrases.csv".format(self.fileName, p),
-                ["Text", "Score", "BeginOffset", "EndOffset"], keyPhrases)
+                f"{self.fileName}-page-{p}-insights-keyPhrases.csv",
+                ["Text", "Score", "BeginOffset", "EndOffset"],
+                keyPhrases,
+            )
 
-        if (medicalInsights):
+        if medicalInsights:
             FileHelper.writeCSV(
-                "{}-page-{}-medical-insights-entities.csv".format(
-                    self.fileName, p), [
-                        "Text", "Type", "Category", "Score", "BeginOffset",
-                        "EndOffset"
-                    ], medicalEntities)
+                f"{self.fileName}-page-{p}-medical-insights-entities.csv",
+                ["Text", "Type", "Category", "Score", "BeginOffset", "EndOffset"],
+                medicalEntities,
+            )
 
             FileHelper.writeToFile(
-                "{}-page-{}-medical-insights-phi.json".format(
-                    self.fileName, p), json.dumps(phi))
+                f"{self.fileName}-page-{p}-medical-insights-phi.json",
+                json.dumps(phi),
+            )
 
-        if (translate):
+        if translate:
             FileHelper.writeToFile(
-                "{}-page-{}-text-translation.txt".format(self.fileName, p),
-                translation)
+                f"{self.fileName}-page-{p}-text-translation.txt", translation
+            )
 
     def generateInsights(self, insights, medicalInsights, translate,
                          awsRegion):
@@ -258,10 +262,7 @@ class OutputGenerator:
         ta = TextAnalyzer('en', awsRegion)
         tma = TextMedicalAnalyzer(awsRegion)
 
-        tt = None
-        if (translate):
-            tt = TextTranslater('auto', translate, awsRegion)
-
+        tt = TextTranslater('auto', translate, awsRegion) if translate else None
         p = 1
         for page in self.document.pages:
             self._generateInsightsPerDocument(page, p, insights,

@@ -15,8 +15,7 @@ class S3Helper:
     def getS3BucketRegion(bucketName):
         client = boto3.client('s3')
         response = client.get_bucket_location(Bucket=bucketName)
-        awsRegion = response['LocationConstraint']
-        return awsRegion
+        return response['LocationConstraint']
 
     @staticmethod
     def getFileNames(awsRegion, bucketName, prefix, maxPages,
@@ -100,12 +99,10 @@ class FileHelper:
 
     @staticmethod
     def getFileNames(path, allowedLocalFileTypes):
-        files = []
-
-        for file in FileHelper.getFilesInFolder(path, allowedLocalFileTypes):
-            files.append(path + file)
-
-        return files
+        return [
+            path + file
+            for file in FileHelper.getFilesInFolder(path, allowedLocalFileTypes)
+        ]
 
     @staticmethod
     def writeCSV(fileName, fieldNames, csvData):
